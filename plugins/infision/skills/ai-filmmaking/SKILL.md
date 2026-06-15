@@ -1,0 +1,104 @@
+---
+name: ai-filmmaking
+description: AI 영화·단편·뮤직비디오·광고·트레일러·장면 시퀀스를 만들 때 캐릭터 정체성 고정(Character Sheet) → 연속 장면 설계(Storyboard) → 영상 프롬프트(Seedance)로 이어지는 제작 워크플로를 적용하기 위한 번들. 여러 샷에서 캐릭터·스타일을 일관되게 유지하는 방법을 다룬다. 모델별 세부 작법은 image-prompt-craft·video-prompt-craft 번들을 함께 본다.
+---
+
+# AI 영화 제작 워크플로 번들 (infision)
+
+캐릭터를 먼저 고정하고, 연속 장면을 설계한 뒤, 영상 프롬프트로 옮기는 **제작 순서**를 다룬다. 모델별 문법·강점은 다루지 않는다 — 그건 아래 번들이 담당한다.
+
+- 캐릭터 시트·스토리보드 이미지는 infision `image-generate`(FLUX 2 / Nano Banana / GPT Image 2) — 문법은 `image-prompt-craft` 번들.
+- 영상은 infision `video-generate`(Seedance/Atlas) — 문법은 `video-prompt-craft` 번들의 `seedance-prompt-craft.md`.
+- 이 번들은 그 위의 **워크플로 레이어**다: 무엇을 어떤 순서로, 캐릭터를 어떻게 안 흔들리게.
+
+**infision 컨벤션(다른 번들과 동일):**
+
+- **화면비·길이·해상도·모델명은 설정(승인 카드)이다 — 프롬프트 문자열에 넣지 않는다.** 그리드 시트는 가로형 화면비를 설정에서 고르면 된다.
+- **고유명사 금지** — 감독/스튜디오/작품/실존인물/브랜드·IP 는 시각 속성으로 분해한다(예: "픽사풍" → `stylized 3D render, soft global illumination, rounded forms, expressive proportions, subtle subsurface skin`).
+
+## 파일
+
+| 파일 | 내용 |
+| --- | --- |
+| `character-sheet.md` | 1단계 — 캐릭터 정체성 고정용 8샷 레퍼런스 시트(이미지 첨부 모드 A / 설명 모드 B), 스타일 블록 |
+| `storyboard-grid.md` | 2단계 — 하나의 연속 장면을 3x3·9패널로 설계, 패널 비트·annotation strip 작법 |
+| `seedance-video.md` | 3단계 — 캐릭터 시트+스토리보드를 Seedance 영상 프롬프트로(Variant A/B/C), `@image` 번호·오디오·대사 |
+
+## 워크플로
+
+각 단계는 해당 파일을 읽고 작성한다. 사용자가 이미 중간 산출물을 가졌다면 그 단계부터 시작한다(캐릭터 시트가 있으면 스토리보드부터).
+
+1. **Character Sheet** (`character-sheet.md`) — 캐릭터 정체성을 먼저 고정한다. 이후 모든 샷의 시각 레퍼런스가 된다.
+2. **Storyboard Grid** (`storyboard-grid.md`) — 하나의 연속 장면을 9개 순차 패널로 설계한다. 카메라 흐름·액션·진행을 잡는다.
+3. **Video Prompt** (`seedance-video.md`) — 시트와 스토리보드를 Seedance 프롬프트로 옮긴다. 오디오·타임라인을 지정한다.
+
+## 최소 브리프
+
+작성 전 최소한 아래가 필요하다. 브리프가 구체적이면 바로 작성하고, 정말 중요한 게 빠졌을 때만 2-3개 짧게 묻는다.
+
+- 장르 / 비주얼 스타일
+- 주인공 정보
+- 장소 / 배경
+- 장면의 감정적 핵심 또는 사건
+- 제외해야 할 요소
+
+(화면비·길이는 infision 설정에서 정하므로 브리프 프롬프트 문자열에 넣지 않는다.)
+
+## 핵심 규칙
+
+세 규칙은 모든 단계에 공통이다.
+
+### 1. Character Lock
+
+가장 큰 실패 원인은 캐릭터 드리프트 — 같은 인물이 샷마다 다른 사람처럼 보이는 것이다.
+
+- 같은 캐릭터 설명을 모든 단계에서 **그대로** 재사용한다. 단계마다 바꿔 말하지 않는다.
+- 모델이 이전 생성을 기억한다고 기대하지 않는다 — 텍스트 설명이 정체성을 고정하는 앵커다.
+- 레퍼런스 이미지가 있어도 텍스트 설명은 보조 앵커로 유지한다.
+- **레퍼런스 이미지의 실제 부착은 `reference_node_ids`로만 한다.** 프롬프트의 `@image1`, `@image2` 는 이미 부착된 N번째 이미지(부착 순서 = `image1`, `image2`, …)에 대한 모델 지시일 뿐, 그 자체로는 아무 이미지도 붙이지 않는다. 레퍼런스를 쓰려면 `video-generate`/`image-generate` 도구의 `reference_node_ids` args 에 노드 id 를 직접 넣어야 한다.
+- 사용자가 직전 턴에 `@`멘션을 했든 안 했든 — `@`멘션 생존(직전 일반 user 메시지 한 턴만 유효)에 의존하지 말고, 레퍼런스를 쓰는 **모든** 생성에서 항상 `reference_node_ids` 를 채운다.
+- 순수 text-to-image(레퍼런스 불필요)면 `reference_node_ids` 도 `@imageN` 도 쓰지 않는다.
+- 같은 인물/사물을 여러 컷에 유지할 땐 피사체마다 서로 다른 노드를 `reference_node_ids` 에 넣고, 프롬프트에서 부착 순서대로 `@image1`/`@image2` 로 구분 지칭한다(`seedance-video.md`).
+
+### 2. Keep Prompts Lean
+
+짧고 선명한 지시가 길고 자세한 묘사보다 낫다. 소설처럼 묘사하지 말고 감독처럼 지시한다.
+
+- 캐릭터 설명은 알아볼 수 있는 핵심 특징만.
+- 장면 효과(빛·피·먼지·젖은 머리)는 캐릭터 시트가 아니라 샷 프롬프트에.
+
+좋은 예: `Viper lunges, palm strike to sternum.`
+나쁜 예: `Viper takes a sudden step forward and extends her right arm in a forceful palm-strike motion targeting Raven's chest area.`
+
+### 3. Style Consistency
+
+시퀀스 전체에서 스타일 블록을 일관되게 유지한다: 팔레트 · 필름 그레인 · 조명 언어 · 렌즈 설명. 첫 샷에서 `35mm film grain, muted tones, golden-hour key light`를 썼다면 이후 샷에서도 같은 블록을 반복한다. (화면비는 프롬프트가 아니라 설정에서 시퀀스 내내 동일하게 둔다.)
+
+## 전달 형식
+
+프롬프트는 복사해 바로 붙여넣을 수 있게 각각 별도 fenced code block 에 넣는다. 여러 개면 코드블록 위에 라벨을 붙인다. 코드블록 안에는 프롬프트만, 설명은 밖에.
+
+## 흔한 함정
+
+- 화면비·길이·모델명을 프롬프트 문자열에 박는 것 (→ infision 설정이다)
+- 고유명사(스튜디오/감독/IP)를 그대로 쓰는 것 (→ 시각 속성으로 분해)
+- `[BRACKETED]` placeholder 를 그대로 남기는 것
+- 단계마다 캐릭터 설명을 바꿔 말하거나, 레퍼런스 이미지가 있는데 장황하게 다시 묘사하는 것
+- 캐릭터 시트에 장면 조명·일시적 효과(피·젖은 머리)를 넣는 것
+- 패널 비트를 소설처럼 서술하거나 annotation strip 을 완전한 문장으로 쓰는 것
+- 장르에 안 맞게 `MOOD`/`VOICE`/`STYLE` 줄을 잘못 쓰는 것
+- 프롬프트에 `@imageN` 만 적고 `reference_node_ids` 를 비우는 것 (→ 허공 참조, 매 생성마다 다른 얼굴/형태)
+- 여러 레퍼런스를 모두 `@image1`로 부르는 것
+- 스토리보드가 있는데 Variant A 를 쓰는 것
+- 요청하지 않은 음악을 넣는 것
+
+## 빠른 체크리스트
+
+- 캐릭터 정체성 문장이 고정돼 있고 모든 단계에서 그대로 재사용됐는가?
+- 스타일 블록이 모든 샷에서 동일한가?
+- 화면비·길이가 프롬프트가 아니라 설정에 있는가? 고유명사는 시각 속성으로 분해됐는가?
+- 레퍼런스를 쓰는 생성마다 `reference_node_ids` 에 노드 id 가 채워졌는가? `@imageN` 번호가 겹치지 않는가?
+- 캐릭터 시트에 장면 조명·일시적 효과가 안 들어갔는가?
+- 스토리보드는 하나의 연속 장면으로 설계됐는가? 패널 비트는 짧은 감독 지시인가?
+- Seedance 타임라인이 설정한 길이 전체를 채우는가?
+- 음악은 사용자가 요청했을 때만 넣었는가?

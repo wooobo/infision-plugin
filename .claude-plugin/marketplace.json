@@ -1,0 +1,17 @@
+{
+  "name": "infision",
+  "owner": {
+    "name": "infision",
+    "url": "https://infision.ai"
+  },
+  "metadata": {
+    "description": "infision 공식 플러그인 마켓플레이스 — 캔버스 생성 MCP 서버 + 크리에이티브 작법 스킬."
+  },
+  "plugins": [
+    {
+      "name": "infision",
+      "source": "./plugins/infision",
+      "description": "infision 캔버스(이미지/비디오 생성) MCP 서버 + 크리에이티브 작법 스킬(이미지·영상 프롬프트, AI 영화제작)."
+    }
+  ]
+}
