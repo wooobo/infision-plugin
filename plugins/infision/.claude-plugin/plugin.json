@@ -1,7 +1,7 @@
 {
   "name": "infision",
   "description": "infision 캔버스를 Claude 에 연결한다 — 원격 MCP 서버로 캔버스 읽기/쓰기와 이미지·비디오 생성을, 번들 스킬로 모델별 프롬프트 작법과 AI 영화제작 워크플로를 제공한다.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "infision"
   },
